@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -34,6 +37,27 @@ class FavoriteSite {
   final String name;
   final String url;
 
+  static FavoriteSite? fromSharedText(String text) {
+    final candidates = [
+      text.trim(),
+      ...RegExp(
+        r'https?://[^\s<>]+',
+        caseSensitive: false,
+      ).allMatches(text).map((match) => match.group(0)!),
+    ];
+
+    for (final candidate in candidates) {
+      final cleaned = candidate.replaceFirst(RegExp(r'[,.;!?)\]}]+$'), '');
+      final url = normalizeHttpUrl(cleaned);
+      if (url == null) continue;
+
+      final uri = Uri.parse(url);
+      return FavoriteSite(name: uri.host, url: url);
+    }
+
+    return null;
+  }
+
   Map<String, String> toJson() => {'name': name, 'url': url};
 
   factory FavoriteSite.fromJson(Map<String, dynamic> json) {
@@ -42,6 +66,22 @@ class FavoriteSite {
       url: json['url'] as String,
     );
   }
+}
+
+String? normalizeHttpUrl(String value) {
+  final input = value.trim();
+  if (input.isEmpty || input.contains(RegExp(r'\s'))) return null;
+
+  final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:').hasMatch(input);
+  final candidate = hasScheme ? input : 'https://$input';
+  final uri = Uri.tryParse(candidate);
+  if (uri == null ||
+      !uri.hasAuthority ||
+      uri.host.isEmpty ||
+      !const ['http', 'https'].contains(uri.scheme.toLowerCase())) {
+    return null;
+  }
+  return uri.toString();
 }
 
 const _defaultSites = [
@@ -68,11 +108,61 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
 
   List<FavoriteSite> _sites = [];
   bool _isLoading = true;
+  StreamSubscription<List<SharedMediaFile>>? _sharedMediaSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadSites();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadSites();
+    if (!mounted || kIsWeb) return;
+
+    _sharedMediaSubscription = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen(
+          _handleSharedMedia,
+          onError: (Object error) =>
+              _showMessage('Tautan berbagi tidak dapat diterima: $error'),
+        );
+
+    try {
+      final sharedMedia = await ReceiveSharingIntent.instance.getInitialMedia();
+      await _handleSharedMedia(sharedMedia);
+      if (sharedMedia.isNotEmpty) {
+        await ReceiveSharingIntent.instance.reset();
+      }
+    } catch (error) {
+      _showMessage('Tautan berbagi tidak dapat diterima: $error');
+    }
+  }
+
+  Future<void> _handleSharedMedia(List<SharedMediaFile> sharedMedia) async {
+    for (final item in sharedMedia) {
+      if (item.type == SharedMediaType.text ||
+          item.type == SharedMediaType.url) {
+        await _saveSharedFavorite(item.path);
+      }
+    }
+  }
+
+  Future<void> _saveSharedFavorite(String text) async {
+    final site = FavoriteSite.fromSharedText(text);
+    if (site == null) {
+      _showMessage('Tautan tidak valid. Bagikan URL HTTP atau HTTPS.');
+      return;
+    }
+
+    if (_sites.any((savedSite) => savedSite.url == site.url)) {
+      _showMessage('${site.url} sudah ada di daftar favorit.');
+      return;
+    }
+
+    if (await _saveSites([..._sites, site])) {
+      _showMessage('${site.name} disimpan ke favorit.');
+    }
   }
 
   Future<void> _loadSites() async {
@@ -98,7 +188,7 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
     }
   }
 
-  Future<void> _saveSites(List<FavoriteSite> sites) async {
+  Future<bool> _saveSites(List<FavoriteSite> sites) async {
     try {
       final preferences = await SharedPreferences.getInstance();
       final saved = await preferences.setString(
@@ -107,10 +197,12 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
       );
       if (!saved) throw StateError('Penyimpanan lokal gagal.');
 
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _sites = sites);
+      return true;
     } catch (error) {
       _showMessage('Perubahan tidak dapat disimpan: $error');
+      return false;
     }
   }
 
@@ -190,7 +282,7 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
                 ),
                 keyboardType: TextInputType.url,
                 validator: (value) {
-                  final url = _normalizeUrl(value ?? '');
+                  final url = normalizeHttpUrl(value ?? '');
                   return url == null ? 'Masukkan URL yang valid' : null;
                 },
               ),
@@ -209,7 +301,7 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
                 context,
                 FavoriteSite(
                   name: nameController.text.trim(),
-                  url: _normalizeUrl(urlController.text)!,
+                  url: normalizeHttpUrl(urlController.text)!,
                 ),
               );
             },
@@ -222,21 +314,6 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
     nameController.dispose();
     urlController.dispose();
     return result;
-  }
-
-  String? _normalizeUrl(String value) {
-    final input = value.trim();
-    if (input.isEmpty || input.contains(RegExp(r'\s'))) return null;
-
-    final candidate = input.contains('://') ? input : 'https://$input';
-    final uri = Uri.tryParse(candidate);
-    if (uri == null ||
-        !uri.hasAuthority ||
-        uri.host.isEmpty ||
-        !const ['http', 'https'].contains(uri.scheme.toLowerCase())) {
-      return null;
-    }
-    return uri.toString();
   }
 
   Future<void> _openSite(FavoriteSite site) async {
@@ -254,6 +331,12 @@ class _FavoriteSitesPageState extends State<FavoriteSitesPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _sharedMediaSubscription?.cancel();
+    super.dispose();
   }
 
   @override

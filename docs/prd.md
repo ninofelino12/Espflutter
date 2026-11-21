@@ -26,6 +26,7 @@ ini menyediakan daftar favorit yang sederhana dan dapat disesuaikan.
 - Memungkinkan pengguna menambah, mengedit, dan menghapus situs.
 - Mempertahankan daftar setelah aplikasi ditutup dan dibuka kembali.
 - Membuka alamat situs yang dipilih melalui browser.
+- Menambahkan URL yang diterima melalui menu berbagi Android ke daftar favorit.
 - Menyediakan pengalaman MVP yang sama pada Android dan web.
 
 ### Di luar cakupan
@@ -115,6 +116,19 @@ pembuka tautan perangkat.
 - Kegagalan saat memuat atau menyimpan data harus diberitahukan kepada pengguna.
 - Jika penyimpanan gagal, jangan tampilkan perubahan sebagai berhasil
   tersimpan.
+
+### F-07 — Menyimpan URL yang dibagikan
+
+- Tampilkan Favorit Web sebagai tujuan berbagi teks pada Android.
+- URL HTTP/HTTPS yang dibagikan dari aplikasi lain ditambahkan ke daftar dengan
+  nama host sebagai nama awal dan disimpan bersama favorit lainnya di
+  penyimpanan lokal aplikasi.
+- URL yang sudah tersimpan tidak ditambahkan dua kali.
+- Teks tanpa URL HTTP/HTTPS tidak disimpan dan menampilkan pesan.
+
+**Kriteria penerimaan:** Memilih Favorit Web dari menu berbagi Android
+menambahkan URL valid ke daftar dan URL tetap tersedia setelah aplikasi
+dimulai ulang.
 
 ## 7. Alur pengguna utama
 

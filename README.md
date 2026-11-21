@@ -10,6 +10,8 @@ Aplikasi Flutter untuk menyimpan dan membuka situs web favorit.
   - [hub.docker.com](https://hub.docker.com)
 - Tambah favorit dengan nama dan URL, atau edit dan hapus favorit yang ada.
 - Data favorit disimpan secara lokal di perangkat.
+- URL yang dibagikan dari aplikasi lain dapat disimpan ke daftar favorit
+  melalui menu **Bagikan** Android.
 - Ketuk kartu situs untuk membukanya di browser.
 - URL tanpa skema akan otomatis menggunakan `https://`.
 
