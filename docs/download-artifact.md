@@ -9,12 +9,17 @@ berjalan otomatis saat ada push atau pull request, dan dapat dijalankan manual.
 1. Buka repositori di GitHub, lalu pilih tab **Actions**.
 2. Pilih workflow **Build Flutter app** dan buka run yang berstatus **Success**.
 3. Pada bagian **Artifacts** di halaman run, klik `flutter-builds`.
-4. Ekstrak ZIP yang diunduh.
+4. Unduh lalu ekstrak ZIP tersebut.
 
 Isi ZIP:
 
-- `app-release.apk` — pasang pada perangkat Android untuk mencoba aplikasi.
+- `app/outputs/flutter-apk/app-release.apk` — APK Android untuk diunduh dan
+  dipasang pada perangkat.
 - `web/` — berkas situs web statis. Unggah isi folder ini ke hosting web statis.
+
+Setelah ZIP diekstrak, buka folder `app/outputs/flutter-apk/` dan salin
+`app-release.apk` ke perangkat Android. Buka APK dari perangkat untuk memulai
+pemasangan. Jika diminta, izinkan pemasangan aplikasi dari sumber tersebut.
 
 Untuk menjalankan versi web, sajikan berkasnya melalui web server atau hosting;
 jangan hanya membuka `index.html` sebagai berkas lokal.
@@ -30,7 +35,7 @@ gh run download <run-id> --name flutter-builds --dir ./downloads
 ```
 
 Ganti `<run-id>` dengan ID dari perintah pertama. Hasil unduhan akan berada di
-`./downloads`.
+`./downloads/app/outputs/flutter-apk/app-release.apk`.
 
 Artifact hanya tersedia untuk run yang berhasil dan akan kedaluwarsa sesuai
 kebijakan retensi artifact GitHub Actions pada repositori. APK ini merupakan
