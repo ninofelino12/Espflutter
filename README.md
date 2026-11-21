@@ -45,4 +45,5 @@ Workflow [Build Flutter app](.github/workflows/build.yml) berjalan saat ada push
 atau pull request ke repositori, dan juga bisa dijalankan secara manual dari tab
 **Actions** di GitHub. Workflow menjalankan `flutter analyze`, membuat build
 Android APK dan web, lalu mengunggah keduanya sebagai artifact bernama
-`flutter-builds`.
+`flutter-builds`. Lihat [panduan mengunduh artifact](docs/download-artifact.md)
+untuk langkah mengunduh dan menggunakan hasil build.
